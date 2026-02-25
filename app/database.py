@@ -13,7 +13,6 @@ from datetime import datetime, date
 from sqlalchemy import (
     Column, String, Float, Boolean, DateTime, Date, Integer,
     Text, ForeignKey, Index, BigInteger, JSON, Enum as SAEnum,
-    create_engine,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -183,8 +182,14 @@ _async_session_factory = None
 def get_async_engine(database_url: str):
     global _async_engine
     if _async_engine is None:
+        # Auto-convert Railway's postgresql:// to asyncpg format
+        url = database_url
+        if url.startswith('postgresql://') and '+asyncpg' not in url:
+            url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+        elif url.startswith('postgres://') and '+asyncpg' not in url:
+            url = url.replace('postgres://', 'postgresql+asyncpg://', 1)
         _async_engine = create_async_engine(
-            database_url,
+            url,
             echo=False,
             pool_size=5,
             max_overflow=10,
