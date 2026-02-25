@@ -27,6 +27,17 @@ async def lifespan(app: FastAPI):
     # --- Startup ---
     print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} starting...")
 
+    # Write Google service account JSON from env var if file doesn't exist
+    if settings.GOOGLE_SERVICE_ACCOUNT_JSON and not os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE):
+        try:
+            sa_path = "/tmp/google-sa.json"
+            with open(sa_path, "w") as f:
+                f.write(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
+            settings.GOOGLE_SERVICE_ACCOUNT_FILE = sa_path
+            print("✅ Google credentials written from env var")
+        except Exception as e:
+            print(f"⚠️ Failed to write Google credentials: {e}")
+
     # Init database
     try:
         await init_db()
