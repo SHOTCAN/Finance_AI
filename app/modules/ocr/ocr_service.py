@@ -73,50 +73,67 @@ async def extract_text_from_image(image_bytes: bytes) -> Optional[str]:
     Supports credentials from JSON string (cloud) or file path (local).
     """
     if not settings.GOOGLE_VISION_ENABLED:
+        print("[OCR] Google Vision is DISABLED (GOOGLE_VISION_ENABLED=False)")
         return None
 
     try:
         from google.cloud import vision
         from google.oauth2 import service_account
         import json as _json
+        import os
 
-        # Load credentials: prefer JSON string (for cloud), fallback to file
+        # Step 1: Load credentials
         credentials = None
+        print(f"[OCR] Loading credentials...")
+        print(f"[OCR]   GOOGLE_SERVICE_ACCOUNT_JSON set: {bool(settings.GOOGLE_SERVICE_ACCOUNT_JSON)}")
+        print(f"[OCR]   GOOGLE_SERVICE_ACCOUNT_JSON length: {len(settings.GOOGLE_SERVICE_ACCOUNT_JSON)}")
+        print(f"[OCR]   GOOGLE_SERVICE_ACCOUNT_FILE: {settings.GOOGLE_SERVICE_ACCOUNT_FILE}")
+        print(f"[OCR]   File exists: {os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE)}")
+
         if settings.GOOGLE_SERVICE_ACCOUNT_JSON:
-            info = _json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
-            credentials = service_account.Credentials.from_service_account_info(info)
-        else:
-            import os
-            if os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE):
-                credentials = service_account.Credentials.from_service_account_file(
-                    settings.GOOGLE_SERVICE_ACCOUNT_FILE
-                )
-            else:
-                print(f"[OCR] Service account file not found: {settings.GOOGLE_SERVICE_ACCOUNT_FILE}")
+            try:
+                info = _json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
+                credentials = service_account.Credentials.from_service_account_info(info)
+                print(f"[OCR]   ✅ Loaded from JSON env var (project: {info.get('project_id', '?')})")
+            except Exception as e:
+                print(f"[OCR]   ❌ Failed to parse JSON env var: {e}")
                 return None
+        elif os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE):
+            credentials = service_account.Credentials.from_service_account_file(
+                settings.GOOGLE_SERVICE_ACCOUNT_FILE
+            )
+            print(f"[OCR]   ✅ Loaded from file")
+        else:
+            print(f"[OCR]   ❌ No credentials available!")
+            print(f"[OCR]   Set GOOGLE_SERVICE_ACCOUNT_JSON env var on Railway")
+            return None
 
+        # Step 2: Resize and call Vision API
         client = vision.ImageAnnotatorClient(credentials=credentials)
-
-        # Resize image first
         resized = resize_image(image_bytes)
+        print(f"[OCR] Image resized: {len(image_bytes)} → {len(resized)} bytes")
 
         image = vision.Image(content=resized)
         response = client.text_detection(image=image)
 
         if response.error.message:
-            print(f"[OCR] Vision API error: {response.error.message}")
+            print(f"[OCR] ❌ Vision API error: {response.error.message}")
             return None
 
         texts = response.text_annotations
         if texts:
-            return texts[0].description  # Full text
+            result_text = texts[0].description
+            print(f"[OCR] ✅ Text found: {len(result_text)} chars")
+            return result_text
+        
+        print("[OCR] ⚠️ No text found in image")
         return None
 
-    except ImportError:
-        print("[OCR] google-cloud-vision not installed")
+    except ImportError as e:
+        print(f"[OCR] ❌ Import error: {e}")
         return None
     except Exception as e:
-        print(f"[OCR] Vision error: {e}")
+        print(f"[OCR] ❌ Vision error: {type(e).__name__}: {e}")
         return None
 
 
