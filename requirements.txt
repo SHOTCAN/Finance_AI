@@ -18,3 +18,4 @@ Pillow==10.4.0
 apscheduler==3.10.4
 slowapi==0.1.9
 numpy==1.26.4
+psutil==5.9.8

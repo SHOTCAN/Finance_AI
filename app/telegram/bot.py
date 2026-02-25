@@ -147,13 +147,15 @@ async def handle_update(update: dict, db):
             "  /hari — Ringkasan hari ini\n"
             "  /minggu — Ringkasan minggu ini\n"
             "  /bulan — Ringkasan bulan ini\n"
+            "  /laporan — Laporan bulanan + AI insight\n"
             "  /anomali — Deteksi pengeluaran aneh\n\n"
+            "📈 *Intelligence:*\n"
+            "  /forecast — Prediksi cashflow 30 hari\n"
+            "  /recurring — Deteksi langganan rutin\n"
+            "  /export — Export ke Google Sheets\n\n"
             "🧠 *AI Assistant:*\n"
             "  Kirim pertanyaan apapun tentang keuanganmu\n"
             "  Contoh: \"Berapa total makan bulan ini?\"\n\n"
-            "⚙️ *Budget & Goals:*\n"
-            "  /budget [kategori] [limit]\n"
-            "  /goal [nama] [target]\n\n"
         )
         if is_admin:
             menu += (
@@ -343,9 +345,109 @@ async def handle_update(update: dict, db):
         await send_message(chat_id, "\n".join(lines))
         return
 
+    # --- /forecast ---
+    if t in ["/forecast", "/prediksi"]:
+        from app.modules.forecasting.forecast_service import forecast_cashflow
+        fc = await forecast_cashflow(db, user_id, 30)
+        await send_message(chat_id,
+            f"📈 *Prediksi Cashflow 30 Hari*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 Proyeksi Pemasukan: Rp {fc['projected_income']:,.0f}\n"
+            f"💸 Proyeksi Pengeluaran: Rp {fc['projected_expense']:,.0f}\n"
+            f"📊 Proyeksi Net: Rp {fc['projected_net']:,.0f}\n"
+            f"💹 Savings Rate: {fc['savings_rate_projected']:.1f}%\n\n"
+            f"📉 Pessimistic: Rp {fc['pessimistic_net']:,.0f}\n"
+            f"📈 Optimistic: Rp {fc['optimistic_net']:,.0f}\n"
+            f"📊 Data: {fc['data_days']} hari")
+        return
+
+    # --- /recurring ---
+    if t in ["/recurring", "/langganan"]:
+        from app.modules.forecasting.forecast_service import detect_recurring_expenses
+        items = await detect_recurring_expenses(db, user_id)
+        if not items:
+            await send_message(chat_id, "📭 Belum ada pola pengeluaran rutin terdeteksi.")
+            return
+        lines = ["🔄 *Pengeluaran Rutin Terdeteksi*\n━━━━━━━━━━━━━━━━━━━━━━"]
+        for item in items:
+            lines.append(
+                f"  • {item['description']}: Rp {item['amount']:,.0f}\n"
+                f"    {item['category']} — {item['frequency']}x ({item['interval']})")
+        await send_message(chat_id, "\n".join(lines))
+        return
+
+    # --- /laporan (Monthly report with AI) ---
+    if t in ["/laporan", "/report"]:
+        from app.modules.reporting.report_service import generate_monthly_report
+        report = await generate_monthly_report(db, user_id)
+        await send_message(chat_id, report)
+        return
+
+    # --- /export (Google Sheets) ---
+    if t in ["/export", "/sheets"]:
+        from app.modules.sheets_export.sheets_service import export_to_sheets
+        today = date.today()
+        month_start = today.replace(day=1)
+        txs = await get_transactions(db, user_id, start_date=month_start, limit=500)
+        summary = await get_summary(db, user_id, month_start, today)
+        uname = user.username or user.display_name or 'User'
+        result = await export_to_sheets(str(user_id), uname, txs, summary)
+        if result['success']:
+            await send_message(chat_id,
+                f"✅ *Export Berhasil!*\n"
+                f"📊 {result['rows_exported']} transaksi\n"
+                f"📋 Sheet: {result['sheet_name']}\n"
+                f"🔗 {result.get('spreadsheet_url', 'Link available in Google Drive')}")
+        else:
+            await send_message(chat_id, f"❌ Export gagal: {result['error']}")
+        return
+
+    # --- /backup (Admin only) ---
+    if t == "/backup" and is_admin:
+        from app.modules.backup.backup_service import backup_database
+        result = await backup_database()
+        if result['success']:
+            await send_message(chat_id,
+                f"✅ *Backup Berhasil*\n"
+                f"📁 Method: {result['method']}\n"
+                f"💾 Size: {result['size_kb']:.1f} KB")
+        else:
+            await send_message(chat_id, f"❌ Backup gagal: {result.get('error')}")
+        return
+
     # --- Photo (OCR receipt) ---
     if photo:
-        await send_message(chat_id, "📸 Processing receipt... (OCR akan diimplementasi di Phase 4)")
+        from app.modules.ocr.ocr_service import process_receipt
+        await send_message(chat_id, "📸 _Memproses struk..._")
+        # Get largest photo
+        file_id = photo[-1]['file_id']
+        file_url = await get_file_url(file_id)
+        if not file_url:
+            await send_message(chat_id, "❌ Gagal download foto.")
+            return
+        image_bytes = await download_file(file_url)
+        if not image_bytes:
+            await send_message(chat_id, "❌ Gagal download foto.")
+            return
+        parsed = await process_receipt(image_bytes)
+        if parsed.get('success'):
+            # Auto-save as expense
+            result = await create_transaction(
+                db, user_id, 'expense',
+                parsed['total'], parsed.get('category', 'Belanja'),
+                f"Struk: {parsed.get('merchant', 'Unknown')}",
+                parsed.get('merchant'), parsed.get('date'),
+                source='ocr'
+            )
+            await send_message(chat_id,
+                f"✅ *Struk Berhasil Diproses!*\n\n"
+                f"🏪 Merchant: {parsed.get('merchant', '-')}\n"
+                f"💸 Total: Rp {parsed['total']:,.0f}\n"
+                f"📂 Kategori: {parsed.get('category', '-')}\n"
+                f"📅 Tanggal: {parsed.get('date', '-')}\n\n"
+                f"{'✅ Tersimpan otomatis!' if result.get('success') else '⚠️ Gagal simpan: ' + result.get('error', '')}")
+        else:
+            await send_message(chat_id, f"❌ {parsed.get('error', 'Gagal proses struk')}")
         return
 
     # --- Default: AI Financial Q&A ---
