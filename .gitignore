@@ -1,0 +1,44 @@
+# Personal Finance AI — SECURITY-CRITICAL GITIGNORE
+# ⚠️ JANGAN HAPUS RULES INI — MELINDUNGI API KEYS & SECRETS
+
+# ===== SECRETS (PALING PENTING) =====
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# ===== Google Service Account Keys =====
+*-f0b54598d94a.json
+ai-keuangan-*.json
+*service-account*.json
+credentials*.json
+
+# ===== Data & Backups =====
+data/
+backups/
+*.db
+*.sqlite3
+*.sql
+
+# ===== Python =====
+*.pyc
+__pycache__/
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===== OS =====
+Thumbs.db
+.DS_Store
