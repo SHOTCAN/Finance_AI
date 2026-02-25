@@ -28,8 +28,11 @@ async def lifespan(app: FastAPI):
     print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} starting...")
 
     # Init database
-    await init_db()
-    print("✅ Database initialized")
+    try:
+        await init_db()
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"⚠️ Database init failed (will retry on first request): {e}")
 
     # Init scheduler for background tasks
     try:
@@ -117,23 +120,33 @@ async def telegram_webhook(request: Request):
     return {"ok": True}
 
 
-@app.post("/webhook/setup")
+@app.get("/webhook/setup")
 async def setup_webhook():
     """
     Set Telegram webhook URL.
-    Call this after deploying to Railway.
+    Open this URL in browser after deploying to Railway.
     """
     import httpx
 
     if not settings.TELEGRAM_TOKEN:
         return {"error": "TELEGRAM_TOKEN not configured"}
 
-    # Auto-detect Railway URL
-    railway_url = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
-    if railway_url:
-        webhook_url = f"https://{railway_url}/webhook/telegram"
-    else:
-        webhook_url = f"http://localhost:{settings.PORT}/webhook/telegram"
+    # Auto-detect Railway URL (try multiple env vars)
+    railway_url = (
+        os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+        or os.environ.get("RAILWAY_STATIC_URL", "")
+    )
+    if not railway_url:
+        # Fallback: check request host
+        return {
+            "error": "Cannot detect Railway domain. Set RAILWAY_PUBLIC_DOMAIN env var.",
+            "hint": "Go to Railway → web → Settings → Public Networking → Generate Domain",
+        }
+
+    # Clean up URL
+    if railway_url.startswith("https://"):
+        railway_url = railway_url.replace("https://", "")
+    webhook_url = f"https://{railway_url}/webhook/telegram"
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
