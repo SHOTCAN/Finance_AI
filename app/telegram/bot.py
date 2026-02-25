@@ -68,7 +68,8 @@ async def handle_update(update: dict, db):
     Routes to appropriate command handlers.
     """
     from app.modules.auth.auth_service import (
-        get_user_by_telegram_id, register_user, create_otp, audit_action
+        get_user_by_telegram_id, register_user, create_otp, audit_action,
+        update_display_name
     )
     from app.modules.transactions.transaction_service import (
         create_transaction, get_transactions, get_summary, soft_delete_transaction,
@@ -93,12 +94,20 @@ async def handle_update(update: dict, db):
     # --- Get or register user ---
     user = await get_user_by_telegram_id(db, chat_id)
 
+    # Helper: get user's saved name
+    def get_name():
+        if user and user.display_name:
+            return user.display_name
+        return display_name or "User"
+
     # --- /start command (registration) ---
     if text.startswith("/start"):
         if user:
+            name = get_name()
             await send_message(chat_id,
-                f"👋 Halo {display_name}! Kamu sudah terdaftar sebagai *{user.role.value}*.\n"
-                f"Ketik /menu untuk lihat fitur.")
+                f"👋 Halo *{name}*! Kamu sudah terdaftar sebagai *{user.role.value}*.\n"
+                f"Ketik /menu untuk lihat fitur.\n\n"
+                f"💡 Ganti nama? Ketik `/nama [nama kamu]`")
             return
 
         # Check for OTP in /start command: /start 123456
@@ -112,6 +121,7 @@ async def handle_update(update: dict, db):
                 f"✅ *Registrasi Berhasil!*\n\n"
                 f"👤 Role: *{role.upper()}*\n"
                 f"{'🔑 Kamu adalah Admin! Gunakan /approve untuk invite user baru.' if role == 'admin' else '🎉 Selamat datang!'}\n\n"
+                f"📝 Set nama kamu: `/nama [nama kamu]`\n"
                 f"Ketik /menu untuk mulai.")
         else:
             await send_message(chat_id,
@@ -132,11 +142,32 @@ async def handle_update(update: dict, db):
     is_admin = user.role == "admin"
     t = text.lower()
 
+    # --- /nama (Set display name) ---
+    if t.startswith("/nama"):
+        parts = text.split(maxsplit=1)
+        if len(parts) < 2 or not parts[1].strip():
+            await send_message(chat_id,
+                f"📝 Nama kamu sekarang: *{get_name()}*\n\n"
+                f"Untuk ganti nama, ketik:\n"
+                f"`/nama [nama baru]`\n\n"
+                f"Contoh: `/nama Sarah`")
+            return
+
+        new_name = parts[1].strip()[:50]  # Max 50 chars
+        await update_display_name(db, user_id, new_name)
+        await send_message(chat_id,
+            f"✅ Nama berhasil diubah!\n\n"
+            f"👤 Nama baru: *{new_name}*\n"
+            f"Mulai sekarang aku akan panggil kamu *{new_name}* 😊")
+        return
+
     # --- /menu ---
     if t in ["/menu", "/help", "menu", "help"]:
+        name = get_name()
         menu = (
-            "🏦 *Personal Finance AI*\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"🏦 *Personal Finance AI*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 Halo *{name}*!\n\n"
             "💰 *Transaksi:*\n"
             "  /tambah [jumlah] [keterangan]\n"
             "  /pemasukan [jumlah] [sumber]\n"
@@ -156,6 +187,8 @@ async def handle_update(update: dict, db):
             "🧠 *AI Assistant:*\n"
             "  Kirim pertanyaan apapun tentang keuanganmu\n"
             "  Contoh: \"Berapa total makan bulan ini?\"\n\n"
+            "⚙️ *Pengaturan:*\n"
+            "  /nama [nama] — Ubah nama\n\n"
         )
         if is_admin:
             menu += (

@@ -214,3 +214,13 @@ async def audit_action(db: AsyncSession, user_id, action: str, details: dict = N
         action=action,
         details=details,
     ))
+
+
+async def update_display_name(db: AsyncSession, user_id, new_name: str) -> dict:
+    """Update user's display name. Does NOT affect any other data."""
+    from sqlalchemy import update
+    await db.execute(
+        update(User).where(User.id == user_id).values(display_name=new_name)
+    )
+    return {'success': True, 'name': new_name}
+
