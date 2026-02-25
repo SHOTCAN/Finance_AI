@@ -70,6 +70,7 @@ async def extract_text_from_image(image_bytes: bytes) -> Optional[str]:
     """
     Use Google Cloud Vision API to extract text from receipt image.
     Image is resized first to save quota.
+    Supports credentials from JSON string (cloud) or file path (local).
     """
     if not settings.GOOGLE_VISION_ENABLED:
         return None
@@ -77,11 +78,22 @@ async def extract_text_from_image(image_bytes: bytes) -> Optional[str]:
     try:
         from google.cloud import vision
         from google.oauth2 import service_account
+        import json as _json
 
-        # Load credentials from service account file
-        credentials = service_account.Credentials.from_service_account_file(
-            settings.GOOGLE_SERVICE_ACCOUNT_FILE
-        )
+        # Load credentials: prefer JSON string (for cloud), fallback to file
+        credentials = None
+        if settings.GOOGLE_SERVICE_ACCOUNT_JSON:
+            info = _json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
+            credentials = service_account.Credentials.from_service_account_info(info)
+        else:
+            import os
+            if os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE):
+                credentials = service_account.Credentials.from_service_account_file(
+                    settings.GOOGLE_SERVICE_ACCOUNT_FILE
+                )
+            else:
+                print(f"[OCR] Service account file not found: {settings.GOOGLE_SERVICE_ACCOUNT_FILE}")
+                return None
 
         client = vision.ImageAnnotatorClient(credentials=credentials)
 

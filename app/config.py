@@ -43,6 +43,7 @@ class Settings(BaseSettings):
 
     # --- Google Cloud ---
     GOOGLE_SERVICE_ACCOUNT_FILE: str = "ai-keuangan-488515-f0b54598d94a.json"
+    GOOGLE_SERVICE_ACCOUNT_JSON: str = ""  # JSON string for cloud deploy (if file not available)
     GOOGLE_SHEETS_ENABLED: bool = True
     GOOGLE_VISION_ENABLED: bool = True
 
