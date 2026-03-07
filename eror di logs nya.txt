@@ -1,0 +1,71 @@
+2026-02-25T17:58:08.960913866Z [inf]  Starting Container
+2026-02-25T17:58:09.836297288Z [inf]  ✅ Personal Finance AI ready!
+2026-02-25T17:58:09.836304481Z [err]  INFO:     Application startup complete.
+2026-02-25T17:58:09.836308600Z [err]  INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2026-02-25T17:58:09.836320059Z [inf]  ✅ Database initialized
+2026-02-25T17:58:09.836320682Z [inf]  🚀 Personal Finance AI v1.0.0 starting...
+2026-02-25T17:58:09.836324915Z [inf]  ✅ Background scheduler started
+2026-02-25T17:58:09.836330284Z [inf]  ✅ Google credentials written from env var
+2026-02-25T17:58:09.836331053Z [err]  INFO:     Started server process [1]
+2026-02-25T17:58:09.836335911Z [err]  INFO:     Waiting for application startup.
+2026-02-25T17:58:49.566381764Z [inf]  INFO:     100.64.0.2:60006 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T17:58:56.163436608Z [inf]  , locale: "en-US"
+2026-02-25T17:58:56.163445651Z [inf]  [OCR] Vision error: 403 This API method requires billing to be enabled. Please enable billing on project #2816649066 by visiting https://console.developers.google.com/billing/enable?project=2816649066 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+2026-02-25T17:58:56.163447321Z [inf]  message: "This API method requires billing to be enabled. Please enable billing on project #2816649066 by visiting https://console.developers.google.com/billing/enable?project=2816649066 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+2026-02-25T17:58:56.163452789Z [inf]  domain: "googleapis.com"
+2026-02-25T17:58:56.163455188Z [inf]  , links {
+2026-02-25T17:58:56.163458521Z [inf]  metadata {
+2026-02-25T17:58:56.163462658Z [inf]    description: "Google developers console billing"
+2026-02-25T17:58:56.163465224Z [inf]    key: "service"
+2026-02-25T17:58:56.163469921Z [inf]    value: "vision.googleapis.com"
+2026-02-25T17:58:56.163474878Z [inf]  }
+2026-02-25T17:58:56.163479911Z [inf]  metadata {
+2026-02-25T17:58:56.163485035Z [inf]    key: "containerInfo"
+2026-02-25T17:58:56.163489133Z [inf]    value: "2816649066"
+2026-02-25T17:58:56.163492705Z [inf]  }
+2026-02-25T17:58:56.163496388Z [inf]  metadata {
+2026-02-25T17:58:56.163499776Z [inf]    key: "consumer"
+2026-02-25T17:58:56.163503311Z [inf]    value: "projects/2816649066"
+2026-02-25T17:58:56.163507360Z [inf]  }
+2026-02-25T17:58:56.163511595Z [inf]  metadata {
+2026-02-25T17:58:56.163515648Z [inf]    key: "consoleUrl"
+2026-02-25T17:58:56.163519438Z [inf]    value: "https://console.developers.google.com/billing/enable?project=2816649066"
+2026-02-25T17:58:56.163522970Z [inf]  }
+2026-02-25T17:58:56.164920966Z [inf]    url: "https://console.developers.google.com/billing/enable?project=2816649066"
+2026-02-25T17:58:56.164926060Z [inf]  }
+2026-02-25T17:58:56.164929216Z [inf]  ]
+2026-02-25T17:58:56.886270046Z [inf]  INFO:     100.64.0.2:11590 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:07:36.690578880Z [inf]  INFO:     100.64.0.3:58118 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:07:56.691662921Z [inf]  INFO:     100.64.0.3:56984 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:08:00.242668136Z [inf]  INFO:     100.64.0.3:56984 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:08:04.140823700Z [inf]  INFO:     100.64.0.3:56984 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:08:24.138837284Z [inf]  INFO:     100.64.0.3:14284 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:08:33.286306990Z [inf]  INFO:     100.64.0.3:14298 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:09:13.287298665Z [inf]  INFO:     100.64.0.3:59974 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:09:53.289053521Z [inf]  INFO:     100.64.0.3:16140 - "POST /webhook/telegram HTTP/1.1" 200 OK
+2026-02-25T18:10:33.291138062Z [inf]  [OCR] Vision error: 403 This API method requires billing to be enabled. Please enable billing on project #2816649066 by visiting https://console.developers.google.com/billing/enable?project=2816649066 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+2026-02-25T18:10:33.291144095Z [inf]    key: "containerInfo"
+2026-02-25T18:10:33.291147333Z [inf]  domain: "googleapis.com"
+2026-02-25T18:10:33.291149017Z [inf]  metadata {
+2026-02-25T18:10:33.291153489Z [inf]    value: "2816649066"
+2026-02-25T18:10:33.291155226Z [inf]  metadata {
+2026-02-25T18:10:33.291160721Z [inf]    key: "consoleUrl"
+2026-02-25T18:10:33.291161921Z [inf]    key: "service"
+2026-02-25T18:10:33.291162958Z [inf]  }
+2026-02-25T18:10:33.291167449Z [inf]    value: "vision.googleapis.com"
+2026-02-25T18:10:33.291169681Z [inf]    value: "https://console.developers.google.com/billing/enable?project=2816649066"
+2026-02-25T18:10:33.291170759Z [inf]  metadata {
+2026-02-25T18:10:33.291173531Z [inf]  }
+2026-02-25T18:10:33.291179045Z [inf]    key: "consumer"
+2026-02-25T18:10:33.291180405Z [inf]  metadata {
+2026-02-25T18:10:33.291181175Z [inf]  }
+2026-02-25T18:10:33.291188587Z [inf]    value: "projects/2816649066"
+2026-02-25T18:10:33.291189902Z [inf]  , locale: "en-US"
+2026-02-25T18:10:33.291194001Z [inf]  message: "This API method requires billing to be enabled. Please enable billing on project #2816649066 by visiting https://console.developers.google.com/billing/enable?project=2816649066 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+2026-02-25T18:10:33.291196520Z [inf]  }
+2026-02-25T18:10:33.291200501Z [inf]  , links {
+2026-02-25T18:10:33.291205694Z [inf]    description: "Google developers console billing"
+2026-02-25T18:10:33.292355443Z [inf]    url: "https://console.developers.google.com/billing/enable?project=2816649066"
+2026-02-25T18:10:33.292361929Z [inf]  }
+2026-02-25T18:10:33.292367087Z [inf]  ]
+2026-02-25T18:10:33.292373285Z [inf]  INFO:     100.64.0.3:38884 - "POST /webhook/telegram HTTP/1.1" 200 OK

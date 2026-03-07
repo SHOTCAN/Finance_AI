@@ -62,7 +62,7 @@ async def ai_categorize(description: str) -> str:
 
 
 async def ai_financial_qa(question: str, summary: dict,
-                          memory: list = None) -> str:
+                          memory: list = None, budgets: list = None) -> str:
     """
     AI financial advisor with context from user's actual data.
     LLM for reasoning and narrative only; data is deterministic.
@@ -83,6 +83,11 @@ async def ai_financial_qa(question: str, summary: dict,
         )
         context += f"- Top kategori: {cats}\n"
 
+    if budgets:
+        context += "- Batas Anggaran (Bulanan):\n"
+        for b in budgets:
+            context += f"  * {b['category']}: Limit Rp {b['limit']:,.0f}, Terpakai Rp {b['spent']:,.0f} (Sisa Rp {b['remaining']:,.0f})\n"
+
     messages = [
         {
             "role": "system",
@@ -91,7 +96,7 @@ async def ai_financial_qa(question: str, summary: dict,
                 "Jawab dalam Bahasa Indonesia yang santai tapi informatif.\n"
                 "ATURAN PENTING:\n"
                 "1. Gunakan data keuangan yang diberikan sebagai fakta — jangan mengarang angka.\n"
-                "2. Berikan insight, saran, dan analisis berdasarkan data.\n"
+                "2. Berikan insight, saran, dan analisis berdasarkan data (terutama jika ada peringatan over budget).\n"
                 "3. Jika ditanya tentang data yang tidak tersedia, sampaikan keterbatasannya.\n"
                 "4. Jaga privasi — jangan sebutkan identitas user.\n"
                 "5. Jawab singkat dan to-the-point (max 200 kata).\n\n"

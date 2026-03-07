@@ -75,6 +75,7 @@ async def handle_update(update: dict, db):
         create_transaction, get_transactions, get_summary, soft_delete_transaction,
         detect_anomalies
     )
+    from app.modules.budgeting.budget_service import set_budget, get_budgets
     from app.modules.ai_processing.groq_rotator import groq_rotator
     from app.modules.ai_processing.ai_service import (
         ai_categorize, ai_financial_qa, get_conversation_memory, save_memory
@@ -174,7 +175,9 @@ async def handle_update(update: dict, db):
             "  /riwayat — 10 transaksi terakhir\n"
             "  /hapus [id] — Hapus transaksi\n"
             "  📸 Kirim foto struk — OCR otomatis\n\n"
-            "📊 *Laporan:*\n"
+            "📊 *Laporan & Budgeting:*\n"
+            "  /budget [kategori] [jumlah] — Set limit kategori\n"
+            "  /budget — Lihat status budget\n"
             "  /hari — Ringkasan hari ini\n"
             "  /minggu — Ringkasan minggu ini\n"
             "  /bulan — Ringkasan bulan ini\n"
@@ -236,18 +239,35 @@ async def handle_update(update: dict, db):
             if cat_result:
                 category = cat_result
 
+        # Check for emergency override
+        is_emergency = False
+        if "darurat" in desc.lower():
+            is_emergency = True
+
         result = await create_transaction(
-            db, user_id, "expense", amount, category, desc
+            db, user_id, "expense", amount, category, desc, is_emergency=is_emergency
         )
         if result['success']:
+            prefix = "🚨 *Pengeluaran Darurat Dicatat*" if is_emergency else "✅ *Pengeluaran Dicatat*"
             await send_message(chat_id,
-                f"✅ *Pengeluaran Dicatat*\n\n"
+                f"{prefix}\n\n"
                 f"💸 Rp {amount:,.0f}\n"
                 f"📂 Kategori: {category}\n"
                 f"📝 {desc if desc else '-'}\n"
                 f"📅 {date.today().strftime('%d %b %Y')}")
         else:
-            await send_message(chat_id, f"❌ {result['error']}")
+            if result.get('code') == 'BUDGET_EXCEEDED':
+                await send_message(chat_id,
+                    f"⚠️ *Peringatan Budget: {category}*\n\n"
+                    f"Pengeluaran ini (Rp {amount:,.0f}) akan melampaui batas anggaran bulanan!\n\n"
+                    f"📊 Limit: Rp {result['limit']:,.0f}\n"
+                    f"💸 Sudah terpakai: Rp {result['spent']:,.0f}\n"
+                    f"📉 Proyeksi: Rp {result['projected']:,.0f}\n\n"
+                    f"💡 *Opsi:* Jika ini mendesak, tambahkan kata *darurat* di akhir keterangan.\n"
+                    f"Contoh: `/tambah {amount:,.0f} {desc} darurat`"
+                )
+            else:
+                await send_message(chat_id, f"❌ {result['error']}")
         return
 
     # --- /pemasukan (Add income) ---
@@ -346,6 +366,46 @@ async def handle_update(update: dict, db):
             f"📊 Avg/hari: Rp {summary['avg_daily_expense']:,.0f}\n\n"
             f"🏷️ *Top Kategori:*\n{cats_str}")
         return
+
+    # --- /budget (Monthly Spending Rule) ---
+    if t.startswith("/budget"):
+        parts = text.split()
+        if len(parts) == 1:
+            # Show current budgets
+            budgets = await get_budgets(db, user_id)
+            if not budgets:
+                await send_message(chat_id, "📭 Belum ada budget yang diatur.\nGunakan: `/budget [kategori] [jumlah]`")
+                return
+            
+            lines = ["📊 *Status Budget Bulan Ini*\n━━━━━━━━━━━━━━━━━━━━━━"]
+            for b in budgets:
+                icon = "🔴" if b['spent'] > b['limit'] else ("🟡" if b['usage_percent'] > 80 else "🟢")
+                lines.append(
+                    f"{icon} *{b['category']}*\n"
+                    f"   Terpakai: Rp {b['spent']:,.0f} / Rp {b['limit']:,.0f} ({b['usage_percent']:.1f}%)\n"
+                    f"   Sisa: Rp {b['remaining']:,.0f}" if b['remaining'] >= 0 else f"   Over: Rp {abs(b['remaining']):,.0f}"
+                )
+            await send_message(chat_id, "\n\n".join(lines))
+            return
+            
+        elif len(parts) >= 3:
+            # Set a budget
+            category = parts[1]
+            try:
+                limit = float(parts[2].replace(",", "").replace(".", "").replace("k", "000"))
+            except ValueError:
+                await send_message(chat_id, "❌ Jumlah limit tidak valid.")
+                return
+                
+            result = await set_budget(db, user_id, category, limit)
+            if result['success']:
+                await send_message(chat_id, f"✅ {result['message']}")
+            else:
+                await send_message(chat_id, f"❌ {result.get('error')}")
+            return
+        else:
+            await send_message(chat_id, "📝 Format: `/budget Makan 500000`\nKosongkan parameter pembantu info status.")
+            return
 
     # --- /anomali (Anomaly detection) ---
     if t in ["/anomali", "/anomaly"]:
@@ -494,9 +554,12 @@ async def handle_update(update: dict, db):
 
         # Conversation memory
         memory = await get_conversation_memory(db, user_id, limit=6)
+        
+        # Budgets context
+        budgets = await get_budgets(db, user_id)
 
         # Ask AI
-        response = await ai_financial_qa(text, summary, memory)
+        response = await ai_financial_qa(text, summary, memory, budgets)
 
         # Save memory
         await save_memory(db, user_id, "user", text)

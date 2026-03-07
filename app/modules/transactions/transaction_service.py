@@ -42,6 +42,7 @@ async def create_transaction(
     tx_date: date = None,
     source: str = "manual",
     idempotency_key: str = None,
+    is_emergency: bool = False,
 ) -> dict:
     """Create a new transaction with duplicate protection."""
     if amount <= 0:
@@ -64,6 +65,13 @@ async def create_transaction(
     )
     if existing.scalar_one_or_none():
         return {'success': False, 'error': 'Transaksi duplikat terdeteksi'}
+
+    # Check budget for expenses
+    if tx_type == "expense" and not is_emergency:
+        from app.modules.budgeting.budget_service import check_budget_status
+        b_status = await check_budget_status(db, user_id, category, amount)
+        if not b_status['success'] and b_status.get('code') == 'BUDGET_EXCEEDED':
+            return b_status
 
     tx = Transaction(
         user_id=user_id,

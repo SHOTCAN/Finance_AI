@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     JWT_ACCESS_EXPIRE_MINUTES: int = 15
     JWT_REFRESH_EXPIRE_DAYS: int = 7
     OTP_EXPIRE_MINUTES: int = 5
-    MAX_USERS: int = 2  # 1 admin + 1 user for initial testing
+    MAX_USERS: int = 6  # 1 admin + 5 users
 
     # --- Telegram ---
     TELEGRAM_TOKEN: str = ""
