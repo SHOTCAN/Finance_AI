@@ -215,6 +215,19 @@ async def handle_update(update: dict, db):
             f"`/start {code}`")
         return
 
+    # --- /users (Admin only) ---
+    if t == "/users" and is_admin:
+        from app.modules.auth.auth_service import get_all_users
+        users = await get_all_users(db)
+        lines = ["👥 *Daftar Pengguna:*\n━━━━━━━━━━━━━━━━━━━━━━"]
+        for u in users:
+            status = "🟢" if u.is_active else "🔴"
+            role_badge = "👑 Admin" if u.role == "admin" else "👤 User"
+            name = u.display_name or u.username or "Tanpa Nama"
+            lines.append(f"{status} *{name}* ({role_badge})\n    ID: `{u.telegram_id}`")
+        await send_message(chat_id, "\n".join(lines))
+        return
+
     # --- /tambah (Add expense) ---
     if t.startswith("/tambah") or t.startswith("/keluar"):
         parts = text.split(maxsplit=2)

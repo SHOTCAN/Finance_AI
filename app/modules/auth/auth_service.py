@@ -132,6 +132,12 @@ async def get_user_count(db: AsyncSession) -> int:
     return len(result.scalars().all())
 
 
+async def get_all_users(db: AsyncSession) -> list:
+    """Get all registered users."""
+    result = await db.execute(select(User).order_by(User.created_at))
+    return result.scalars().all()
+
+
 async def register_user(db: AsyncSession, telegram_id: str,
                         username: str = None, display_name: str = None,
                         otp_code: str = None) -> dict:
