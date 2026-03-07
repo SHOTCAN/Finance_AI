@@ -122,7 +122,7 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
         # Use vision model
         result = await groq_rotator.chat(
             messages,
-            model="llama-3.2-90b-vision-preview",
+            model="llama-3.2-90b-vision-instruct",
             max_tokens=500,
             temperature=0.1,
         )
@@ -133,13 +133,14 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
             err_msg1 = result.get('error', 'Unknown')
             result = await groq_rotator.chat(
                 messages,
-                model="llama-3.2-11b-vision-preview",
+                model="llama-3.2-11b-vision-instruct",
                 max_tokens=500,
                 temperature=0.1,
             )
             if not result['success']:
                 err_msg2 = result.get('error', 'Unknown')
-                return {'success': False, 'error': f'AI Vision gagal: {err_msg2} (90b: {err_msg1})'}
+                print(f"[OCR] ❌ Fallback Vision failed: {err_msg2} (90b: {err_msg1})")
+                return {'success': False, 'error': 'AI Vision sedang dalam maintenance. Silakan coba lagi nanti.'}
 
         print(f"[OCR] ✅ Groq Vision response received (key #{result.get('key_used', '?')})")
 
