@@ -73,7 +73,7 @@ async def handle_update(update: dict, db):
     )
     from app.modules.transactions.transaction_service import (
         create_transaction, get_transactions, get_summary, soft_delete_transaction,
-        detect_anomalies
+        detect_anomalies, delete_transaction, reset_user_finances
     )
     from app.modules.budgeting.budget_service import set_budget, get_budgets
     from app.modules.ai_processing.groq_rotator import groq_rotator
@@ -319,11 +319,44 @@ async def handle_update(update: dict, db):
         lines = ["📋 *10 Transaksi Terakhir*\n━━━━━━━━━━━━━━━━━━━━━━"]
         for tx in txs:
             emoji = "💰" if tx['type'] == 'income' else "💸"
+            short_id = tx['id'][:8]
             lines.append(
                 f"{emoji} Rp {tx['amount']:,.0f} — {tx['category']}\n"
-                f"   {tx['description'][:40] if tx['description'] else '-'} ({tx['date']})"
+                f"   {tx['description'][:30] if tx['description'] else '-'} ({tx['date']}) /hapus_{short_id}"
             )
         await send_message(chat_id, "\n".join(lines))
+        return
+
+    # --- /hapus_[short_id] (Delete specific transaction) ---
+    if t.startswith("/hapus_") or t.startswith("/delete_"):
+        parts = t.split("_", 1)
+        if len(parts) == 2:
+            short_id = parts[1]
+            res = await delete_transaction(db, user_id, short_id)
+            if res.get('success'):
+                await send_message(chat_id, f"✅ {res.get('message')}")
+            else:
+                await send_message(chat_id, f"❌ {res.get('error')}")
+            return
+        
+    # --- /reset_finance (Warning & Confirmation) ---
+    if t == "/reset_finance":
+        await send_message(chat_id,
+            "⚠️ *PERINGATAN KERAS!* ⚠️\n\n"
+            "Anda akan menghapus **SELURUH** catatan pengeluaran, pemasukan, dan laporan finansial Anda secara permanen. "
+            "Anggaran (*budget*) Anda tidak akan dihapus, tetapi total penggunaannya akan kembali menjadi Rp 0.\n\n"
+            "Tindakan ini juga akan menghapus memori riwayat tanya-jawab AI Anda.\n\n"
+            "Jika Anda BENAR-BENAR yakin ingin mereset semuanya, ketik / tap perintah konfirmasi di bawah ini:\n\n"
+            "👉 `/reset_confirm`"
+        )
+        return
+
+    if t == "/reset_confirm":
+        res = await reset_user_finances(db, user_id)
+        if res.get('success'):
+            await send_message(chat_id, f"✅ Data Finansial Berhasil Direset ke Nol.\n(Total {res.get('count', 0)} transaksi dihapus)")
+        else:
+            await send_message(chat_id, f"❌ {res.get('error')}")
         return
 
     # --- /hari (Daily summary) ---

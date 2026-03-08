@@ -292,3 +292,83 @@ async def detect_anomalies(db: AsyncSession, user_id: UUID,
                 })
 
     return anomalies
+
+async def delete_transaction(db: AsyncSession, user_id: UUID, short_id: str) -> dict:
+    """Soft-delete a transaction using a short 8-char ID."""
+    try:
+        from sqlalchemy import cast, String
+        
+        result = await db.execute(
+            select(Transaction)
+            .where(
+                and_(
+                    Transaction.user_id == user_id,
+                    Transaction.is_deleted == False,
+                    cast(Transaction.id, String).like(f"{short_id}%")
+                )
+            )
+        )
+        tx = result.scalar_one_or_none()
+        
+        if not tx:
+            return {'success': False, 'error': 'Transaksi tidak ditemukan atau sudah dihapus.'}
+            
+        tx.is_deleted = True
+        
+        try:
+            from app.database import AuditLog
+            log = AuditLog(
+                user_id=user_id,
+                action="transaction.delete",
+                details={"tx_id": str(tx.id), "amount": tx.amount, "category": tx.category}
+            )
+            db.add(log)
+        except Exception:
+            pass
+            
+        return {
+            'success': True, 
+            'message': f"Transaksi Rp {tx.amount:,.0f} ({tx.category}) berhasil dihapus."
+        }
+    except Exception as e:
+        print(f"[Transaction] Delete failed: {e}")
+        return {'success': False, 'error': 'Gagal menghapus transaksi.'}
+
+async def reset_user_finances(db: AsyncSession, user_id: UUID) -> dict:
+    """Soft-delete ALL transactions and purge AI memory for this user."""
+    try:
+        from app.database import AIMemory, AuditLog
+        
+        # Get all transactions
+        result = await db.execute(
+            select(Transaction).where(
+                and_(Transaction.user_id == user_id, Transaction.is_deleted == False)
+            )
+        )
+        transactions = result.scalars().all()
+        
+        count = 0
+        for tx in transactions:
+            tx.is_deleted = True
+            count += 1
+                
+        # Hard purge memory to reset AI context
+        await db.execute(
+            AIMemory.__table__.delete().where(AIMemory.user_id == user_id)
+        )
+        
+        # Log reset
+        try:
+            log = AuditLog(
+                user_id=user_id,
+                action="user.reset_finance",
+                details={"deleted_count": count}
+            )
+            db.add(log)
+        except Exception:
+            pass
+            
+        return {'success': True, 'count': count}
+    except Exception as e:
+        print(f"[System] Reset failed: {e}")
+        return {'success': False, 'error': 'Layanan Reset Finansial gagal diproses.'}
