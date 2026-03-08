@@ -103,6 +103,8 @@ async def export_to_sheets(user_id: str, username: str,
         }
 
     except ImportError:
-        return {'success': False, 'error': 'gspread not installed'}
+        return {'success': False, 'error': 'Modul gspread belum terinstall.'}
     except Exception as e:
-        return {'success': False, 'error': f'Sheets export failed: {e}'}
+        # Log error in backend only to prevent leaking raw Google API endpoints/project IDs to users
+        print(f"[Export Error] {e}")
+        return {'success': False, 'error': 'Fitur Export Spreadsheet sedang dalam maintenance. Silakan coba lagi nanti.'}
