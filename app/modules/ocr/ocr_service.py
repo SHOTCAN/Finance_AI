@@ -60,7 +60,8 @@ def validate_image(image_bytes: bytes) -> dict:
 
         return {'valid': True, 'width': width, 'height': height, 'size_kb': round(size_kb)}
     except Exception as e:
-        return {'valid': False, 'error': f'Format gambar tidak valid: {e}'}
+        print(f"[OCR] Validation error: {e}")
+        return {'valid': False, 'error': 'Fitur Vision sedang dalam maintenance. Silakan coba lagi nanti.'}
 
 
 # ============================================
@@ -192,7 +193,7 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
         return {'success': False, 'error': 'Gagal parse response AI'}
     except Exception as e:
         print(f"[OCR] ❌ Vision error: {type(e).__name__}: {e}")
-        return {'success': False, 'error': f'Error: {e}'}
+        return {'success': False, 'error': 'Fitur AI Vision sedang dalam maintenance. Silakan coba lagi nanti.'}
 
 
 # ============================================

@@ -87,7 +87,8 @@ async def backup_database() -> dict:
             'tables': list(export.keys()),
         }
     except Exception as e:
-        return {'success': False, 'error': str(e)}
+        print(f"[Backup] Failed: {e}")
+        return {'success': False, 'error': 'Layanan backup sedang dalam maintenance. Silakan coba lagi nanti.'}
 
 
 def cleanup_old_backups(max_keep: int = 7):

@@ -182,9 +182,11 @@ class GroqKeyRotator:
                     self.record_error(idx, f"unknown: {type(e).__name__}")
 
                 if attempt >= attempts - 1:
-                    return {'success': False, 'error': str(e), 'key_tried': idx + 1}
+                    print(f"[Groq Rotator] All keys exhausted/failed. Last error: {e}")
+                    return {'success': False, 'error': 'Layanan AI sedang dalam maintenance. Silakan coba beberapa saat lagi.', 'key_tried': idx + 1}
 
-        return {'success': False, 'error': 'All keys exhausted'}
+        print("[Groq Rotator] All keys exhausted.")
+        return {'success': False, 'error': 'Layanan AI sedang dalam maintenance. Silakan coba beberapa saat lagi.'}
 
 
 # Singleton
