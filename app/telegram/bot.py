@@ -545,13 +545,16 @@ async def handle_update(update: dict, db):
                 parsed.get('merchant'), parsed.get('date'),
                 source='ocr'
             )
+            analysis_text = parsed.get('analysis', '')
+            analysis_block = f"📊 *Analisa:*\n{analysis_text}\n\n" if analysis_text else ""
             await send_message(chat_id,
                 f"✅ *Struk Berhasil Diproses!*\n\n"
                 f"🏪 Merchant: {parsed.get('merchant', '-')}\n"
                 f"💸 Total: Rp {parsed['total']:,.0f}\n"
                 f"📂 Kategori: {parsed.get('category', '-')}\n"
                 f"📅 Tanggal: {parsed.get('date', '-')}\n\n"
-                f"{'✅ Tersimpan otomatis!' if result.get('success') else '⚠️ Gagal simpan: ' + result.get('error', '')}")
+                f"{analysis_block}"
+                f"{'✅ Tersimpan otomatis ke pengeluaranmu!' if result.get('success') else '⚠️ Gagal simpan otomatis: ' + result.get('error', '')}")
         else:
             await send_message(chat_id, f"❌ {parsed.get('error', 'Gagal proses struk')}")
         return

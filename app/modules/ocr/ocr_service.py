@@ -105,14 +105,14 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
                             '  "date": "YYYY-MM-DD",\n'
                             '  "total": angka total (integer, tanpa simbol mata uang/titik/koma),\n'
                             '  "items": ["item1", "item2"],\n'
-                            '  "category": "salah satu dari: Makanan, Minuman, Belanja, '
-                            'Kesehatan, Transportasi, Tagihan, Rumah Tangga, Lainnya",\n'
+                            '  "category": "salah satu dari: Makanan, Minuman, Belanja, Kesehatan, Transportasi, Tagihan, Rumah Tangga, Lainnya",\n'
                             '  "currency": "mata uang yang terdeteksi (IDR/USD/EUR/CHF dll)",\n'
+                            '  "analysis": "Penjelasan detail tentang struk ini (sebutkan nama toko, tanggal, daftar barang + harga, pajak, total, dan metode pembayaran)",\n'
                             '  "ocr_text": "teks lengkap yang terbaca dari struk (maks 200 karakter)"\n'
                             "}\n"
                             "Jika tidak bisa menentukan field, isi null.\n"
                             "Jika total dalam mata uang asing, konversi ke IDR (Rupiah) dengan kurs perkiraan.\n"
-                            "PENTING: Jawab HANYA dengan JSON, tanpa teks lain."
+                            "PENTING: Jawab HANYA dengan JSON yang valid, tanpa teks awalan atau akhiran."
                         ),
                     },
                 ],
@@ -122,25 +122,24 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
         # Use vision model
         result = await groq_rotator.chat(
             messages,
-            model="llama-3.2-90b-vision-instruct",
-            max_tokens=500,
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            max_tokens=600,
             temperature=0.1,
         )
 
         if not result['success']:
-            print(f"[OCR] ❌ Groq Vision failed: {result.get('error', 'Unknown')}")
-            # Try with smaller model as fallback
             err_msg1 = result.get('error', 'Unknown')
+            print(f"[OCR] ❌ Vision failed: {err_msg1}, attempting fallback retry...")
+            # Retry with the same working model (Groq rotator will automatically try a different key)
             result = await groq_rotator.chat(
                 messages,
-                model="llama-3.2-11b-vision-instruct",
-                max_tokens=500,
-                temperature=0.1,
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                max_tokens=600,
+                temperature=0.2, # slightly higher temp for retry
             )
             if not result['success']:
                 err_msg2 = result.get('error', 'Unknown')
-                print(f"[OCR] ❌ Fallback Vision failed: {err_msg2} (90b: {err_msg1})")
-                return {'success': False, 'error': 'AI Vision sedang dalam maintenance. Silakan coba lagi nanti.'}
+                return {'success': False, 'error': f'AI Vision gagal setelah retry: {err_msg2} (Awal: {err_msg1})'}
 
         print(f"[OCR] ✅ Groq Vision response received (key #{result.get('key_used', '?')})")
 
@@ -159,6 +158,7 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
             'total': None,
             'items': parsed.get('items', []),
             'category': parsed.get('category', 'Lainnya'),
+            'analysis': parsed.get('analysis', ''),
             'ocr_text_preview': parsed.get('ocr_text', '')[:200],
         }
 
