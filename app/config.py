@@ -28,7 +28,10 @@ class Settings(BaseSettings):
     JWT_ACCESS_EXPIRE_MINUTES: int = 15
     JWT_REFRESH_EXPIRE_DAYS: int = 7
     OTP_EXPIRE_MINUTES: int = 5
-    MAX_USERS: int = 6  # 1 admin + 5 users
+    MAX_USERS: int = os.environ.get('MAX_USERS', 6)  # Default 6
+    if isinstance(MAX_USERS, str):
+        MAX_USERS = int(MAX_USERS)
+    MAX_USERS = max(MAX_USERS, 6) # Force minimum 6 users regardless of old .env settings
 
     # --- Telegram ---
     TELEGRAM_TOKEN: str = ""
