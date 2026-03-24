@@ -123,7 +123,7 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
         # Use vision model
         result = await groq_rotator.chat(
             messages,
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            model="llama-3.2-90b-vision-preview",
             max_tokens=600,
             temperature=0.1,
         )
@@ -134,7 +134,7 @@ async def extract_and_parse_receipt(image_bytes: bytes) -> dict:
             # Retry with the same working model (Groq rotator will automatically try a different key)
             result = await groq_rotator.chat(
                 messages,
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                model="llama-3.2-90b-vision-preview",
                 max_tokens=600,
                 temperature=0.2, # slightly higher temp for retry
             )
